@@ -27,6 +27,11 @@ tool: everything is pre-seeded and all your edits are saved in the browser
 - **Timeline** — every milestone from **June 2026 → September 2027** (Chevening +
   school rounds + loan-scholarship windows + GMAT), grouped by month, with
   checkboxes and past-due highlighting.
+- **Test Prep** — a full GMAT Focus / GRE prep tracker: route decision
+  (waiver-first / GMAT / GRE), target scores, section-readiness sliders, a dated
+  ~10-week study plan, mock-score logging with a trend chart against your target,
+  and a curated resource library with real links (mba.com, ETS, GMAT Club,
+  GregMat, Target Test Prep, e-GMAT, etc.).
 - **Essays** — a board grouped by status (Not started / In progress / Submitted)
   so you can reuse drafts across apps.
 - **Tasks & Recommenders** — a checklist plus recommender status.
