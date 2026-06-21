@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
-import type { Milestone, MilestoneCategory } from '../data';
+import { BookOpenCheck, Check, Plus, Trash2 } from 'lucide-react';
+import type { MilestoneCategory } from '../data';
 import { daysUntil, formatDate, formatMonthYear, parseDate, urgencyFor, URGENCY_DOT } from '../lib/dates';
 import { uid, useStore } from '../store';
 import { Badge } from './ui/Badge';
@@ -16,23 +16,47 @@ const CAT_BADGE: Record<MilestoneCategory, string> = {
   Personal: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
 };
 
+// A unified row: a real milestone, or a test-prep plan step surfaced here so
+// the GMAT/GRE prep schedule shows on the master timeline too. Prep steps stay
+// owned by the Test Prep tab (single source of truth) — toggling/deleting one
+// here edits that plan step.
+type TimelineItem = {
+  id: string;
+  date: string;
+  label: string;
+  category: MilestoneCategory;
+  done: boolean;
+  approx?: boolean;
+  source: 'milestone' | 'prep';
+  phase?: string;
+};
+
 export function TimelineView() {
   const { data, mutate } = useStore();
   const [filter, setFilter] = useState<'All' | MilestoneCategory>('All');
   const [adding, setAdding] = useState(false);
 
-  const sorted = useMemo(
-    () =>
-      [...data.milestones].sort(
-        (a, b) => (parseDate(a.date)?.getTime() ?? 0) - (parseDate(b.date)?.getTime() ?? 0),
-      ),
-    [data.milestones],
-  );
+  const sorted = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = [
+      ...data.milestones.map((m) => ({ ...m, source: 'milestone' as const })),
+      ...data.testPrep.plan.map((s) => ({
+        id: s.id,
+        date: s.date,
+        label: s.label,
+        category: 'GMAT' as MilestoneCategory,
+        done: s.done,
+        approx: s.approx,
+        source: 'prep' as const,
+        phase: s.phase,
+      })),
+    ];
+    return items.sort((a, b) => (parseDate(a.date)?.getTime() ?? 0) - (parseDate(b.date)?.getTime() ?? 0));
+  }, [data.milestones, data.testPrep.plan]);
 
   const visible = sorted.filter((m) => filter === 'All' || m.category === filter);
 
   // Group by "Mon YYYY".
-  const groups: { key: string; items: Milestone[] }[] = [];
+  const groups: { key: string; items: TimelineItem[] }[] = [];
   for (const m of visible) {
     const key = formatMonthYear(m.date);
     const last = groups[groups.length - 1];
@@ -40,15 +64,24 @@ export function TimelineView() {
     else groups.push({ key, items: [m] });
   }
 
-  const toggle = (id: string) =>
+  const toggle = (it: TimelineItem) =>
     mutate((d) => {
-      const m = d.milestones.find((x) => x.id === id);
-      if (m) m.done = !m.done;
+      if (it.source === 'prep') {
+        const s = d.testPrep.plan.find((x) => x.id === it.id);
+        if (s) s.done = !s.done;
+      } else {
+        const m = d.milestones.find((x) => x.id === it.id);
+        if (m) m.done = !m.done;
+      }
     });
 
-  const remove = (id: string) =>
+  const remove = (it: TimelineItem) =>
     mutate((d) => {
-      d.milestones = d.milestones.filter((x) => x.id !== id);
+      if (it.source === 'prep') {
+        d.testPrep.plan = d.testPrep.plan.filter((x) => x.id !== it.id);
+      } else {
+        d.milestones = d.milestones.filter((x) => x.id !== it.id);
+      }
     });
 
   return (
@@ -74,6 +107,14 @@ export function TimelineView() {
         </button>
       </div>
 
+      {filter === 'GMAT' && (
+        <p className="flex items-center gap-1.5 text-xs text-slate-400">
+          <BookOpenCheck className="h-3.5 w-3.5 text-violet-500" />
+          Steps tagged <span className="font-medium text-violet-600 dark:text-violet-400">prep</span> come from your Test
+          Prep study plan — edit them in either place.
+        </p>
+      )}
+
       {adding && <AddMilestoneForm onClose={() => setAdding(false)} />}
 
       <div className="card p-5">
@@ -91,10 +132,10 @@ export function TimelineView() {
                     const overdue = !m.done && (daysUntil(m.date) ?? 0) < 0;
                     const u = urgencyFor(m.date);
                     return (
-                      <li key={m.id} className="group relative -ml-[1.45rem] flex items-start gap-3 pl-1">
+                      <li key={`${m.source}-${m.id}`} className="group relative -ml-[1.45rem] flex items-start gap-3 pl-1">
                         {/* Node / checkbox */}
                         <button
-                          onClick={() => toggle(m.id)}
+                          onClick={() => toggle(m)}
                           aria-label={m.done ? 'Mark not done' : 'Mark done'}
                           className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition ${
                             m.done
@@ -118,6 +159,7 @@ export function TimelineView() {
                           }`}
                         >
                           <span
+                            title={m.phase}
                             className={`text-sm font-medium ${
                               m.done
                                 ? 'text-slate-400 line-through'
@@ -127,12 +169,18 @@ export function TimelineView() {
                             {m.label}
                           </span>
                           {m.approx && <VerifyFlag />}
-                          <Badge className={CAT_BADGE[m.category]}>{m.category}</Badge>
+                          {m.source === 'prep' ? (
+                            <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300">
+                              <BookOpenCheck className="h-3 w-3" /> GMAT prep
+                            </Badge>
+                          ) : (
+                            <Badge className={CAT_BADGE[m.category]}>{m.category}</Badge>
+                          )}
                           <span className="text-xs tabular-nums text-slate-400">{formatDate(m.date)}</span>
                           {!m.done && <CountdownPill iso={m.date} />}
                           <button
-                            onClick={() => remove(m.id)}
-                            aria-label="Delete milestone"
+                            onClick={() => remove(m)}
+                            aria-label="Delete item"
                             className="ml-auto rounded p-1 text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100 dark:hover:bg-rose-950/40"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
