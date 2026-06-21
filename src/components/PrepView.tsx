@@ -5,6 +5,7 @@ import {
   Check,
   ExternalLink,
   Plus,
+  Sparkles,
   Target,
   Trash2,
   TrendingUp,
@@ -21,9 +22,11 @@ import {
 } from 'recharts';
 import type { PrepRoute, ResourceKind, ResourceStatus, TestType } from '../data';
 import { daysUntil, formatDate, urgencyFor, URGENCY_DOT } from '../lib/dates';
+import { buildCoachPrompt, buildStepPrompt } from '../lib/prompts';
 import { uid, useStore } from '../store';
 import { Badge } from './ui/Badge';
 import { CountdownPill, VerifyFlag } from './ui/Bits';
+import { CopyButton } from './ui/CopyButton';
 import { ProgressBar } from './ui/ProgressBar';
 
 const ROUTES: PrepRoute[] = ['Undecided', 'Waiver-first', 'GMAT', 'GRE'];
@@ -114,6 +117,22 @@ export function PrepView() {
           <DateCard label="Decide route by" iso={tp.decideBy} />
           <DateCard label="Target test day" iso={tp.targetTestDate} />
         </div>
+
+        {/* Copy a tailored prompt to get AI guidance on resources + plan */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-3 dark:border-indigo-900/60 dark:bg-indigo-950/30">
+          <Sparkles className="h-5 w-5 shrink-0 text-indigo-500" />
+          <p className="min-w-0 flex-1 text-xs text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">Want best-resource guidance?</span> Copy
+            a ready-made prompt — pre-filled with your targets, section readiness &amp; dates — and paste it into Claude
+            (cowork) along with this site for tailored recommendations.
+          </p>
+          <CopyButton
+            getText={() => buildCoachPrompt(data)}
+            label="Copy AI study-coach prompt"
+            copiedLabel="Copied — paste into Claude"
+            className="btn-primary shrink-0"
+          />
+        </div>
       </section>
 
       {/* Test toggle */}
@@ -186,7 +205,9 @@ export function PrepView() {
           </span>
         </div>
         <p className="mt-1 text-xs text-slate-400">
-          A ~10-week schedule (activate if you go the test route). Dates flagged <VerifyFlag /> are approximate.
+          A ~10-week schedule (activate if you go the test route). Dates flagged <VerifyFlag /> are approximate. Hover a
+          step for a <Sparkles className="inline h-3 w-3 text-indigo-400" /> button that copies an AI prompt for help on
+          that step.
         </p>
         <div className="mt-4 space-y-5">
           {phases.map((p) => (
@@ -227,10 +248,16 @@ export function PrepView() {
                           {formatDate(s.date)}
                         </span>
                         {!s.done && <CountdownPill iso={s.date} />}
+                        <CopyButton
+                          getText={() => buildStepPrompt(data, s)}
+                          iconOnly
+                          title="Copy an AI prompt for this step"
+                          className="ml-auto rounded p-1 text-slate-300 opacity-0 transition hover:bg-indigo-50 hover:text-indigo-600 group-hover:opacity-100 dark:hover:bg-indigo-950/40"
+                        />
                         <button
                           onClick={() => mutate((d) => { d.testPrep.plan = d.testPrep.plan.filter((y) => y.id !== s.id); })}
                           aria-label="Delete step"
-                          className="ml-auto rounded p-1 text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100 dark:hover:bg-rose-950/40"
+                          className="rounded p-1 text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100 dark:hover:bg-rose-950/40"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
