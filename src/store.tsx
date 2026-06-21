@@ -31,9 +31,11 @@ function loadFromStorage(): AppData {
   }
 }
 
-/** Defensive top-level shape check so a partial import never crashes the app. */
+/** Defensive top-level shape check so a partial import (or an older save that
+ *  predates a feature like test prep) never crashes the app. */
 function normalize(d: AppData): AppData {
   const seed = buildSeed();
+  const tp = d.testPrep;
   return {
     meta: { ...seed.meta, ...(d.meta ?? {}) },
     schools: Array.isArray(d.schools) ? d.schools : seed.schools,
@@ -42,6 +44,18 @@ function normalize(d: AppData): AppData {
     essays: Array.isArray(d.essays) ? d.essays : seed.essays,
     tasks: Array.isArray(d.tasks) ? d.tasks : seed.tasks,
     recommenders: Array.isArray(d.recommenders) ? d.recommenders : seed.recommenders,
+    testPrep:
+      tp && typeof tp === 'object'
+        ? {
+            ...seed.testPrep,
+            ...tp,
+            targets: tp.targets ?? seed.testPrep.targets,
+            sections: Array.isArray(tp.sections) ? tp.sections : seed.testPrep.sections,
+            mocks: Array.isArray(tp.mocks) ? tp.mocks : seed.testPrep.mocks,
+            plan: Array.isArray(tp.plan) ? tp.plan : seed.testPrep.plan,
+            resources: Array.isArray(tp.resources) ? tp.resources : seed.testPrep.resources,
+          }
+        : seed.testPrep,
   };
 }
 

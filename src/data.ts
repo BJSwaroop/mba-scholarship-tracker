@@ -109,6 +109,68 @@ export interface Meta {
   gmatTarget: string;
 }
 
+// ---- Test prep (GMAT Focus / GRE) ----
+
+export type TestType = 'GMAT' | 'GRE';
+export type PrepRoute = 'Undecided' | 'Waiver-first' | 'GMAT' | 'GRE';
+export type ResourceStatus = 'To explore' | 'Using' | 'Done';
+export type ResourceKind = 'Official' | 'Course' | 'Books' | 'Practice tests' | 'Free';
+
+export interface PrepSection {
+  id: string;
+  test: TestType;
+  name: string;
+  range: string; // scoring range, e.g. "60–90"
+  target: string; // target for this section
+  confidence: number; // 0..100 self-rated readiness
+}
+
+export interface MockTest {
+  id: string;
+  test: TestType;
+  label: string; // e.g. "Official Practice Exam 1"
+  date?: string; // ISO date taken
+  score?: number; // total score
+  notes?: string;
+}
+
+export interface PrepResource {
+  id: string;
+  name: string;
+  test: TestType | 'Both';
+  kind: ResourceKind;
+  link?: string;
+  cost?: string;
+  notes?: string;
+  status: ResourceStatus;
+}
+
+export interface PrepStep {
+  id: string;
+  phase: string; // e.g. "Phase 1 · Diagnostic & foundations"
+  date: string; // ISO date
+  label: string;
+  done: boolean;
+  approx?: boolean;
+}
+
+export interface TestTarget {
+  display: string; // "655+ (Focus Edition)"
+  score: number; // numeric, for the mock-trend reference line
+  range: string; // "205–805"
+}
+
+export interface TestPrep {
+  route: PrepRoute;
+  decideBy: string; // ISO, approx
+  targetTestDate: string; // ISO, approx
+  targets: { gmat: TestTarget; gre: TestTarget };
+  sections: PrepSection[];
+  mocks: MockTest[];
+  plan: PrepStep[];
+  resources: PrepResource[];
+}
+
 export interface AppData {
   meta: Meta;
   schools: School[];
@@ -117,6 +179,7 @@ export interface AppData {
   essays: Essay[];
   tasks: Task[];
   recommenders: Recommender[];
+  testPrep: TestPrep;
 }
 
 // Bump this if the shape of the seed changes incompatibly.
@@ -137,6 +200,9 @@ const ess = (e: Omit<Essay, 'id'>): Essay => ({ id: gid('ess'), ...e });
 const tsk = (t: Omit<Task, 'id'>): Task => ({ id: gid('tsk'), ...t });
 const loan = (l: Omit<LoanScholarship, 'id'>): LoanScholarship => ({ id: gid('loan'), ...l });
 const rec = (r: Omit<Recommender, 'id'>): Recommender => ({ id: gid('rec'), ...r });
+const psec = (s: Omit<PrepSection, 'id'>): PrepSection => ({ id: gid('psec'), ...s });
+const pres = (r: Omit<PrepResource, 'id'>): PrepResource => ({ id: gid('pres'), ...r });
+const pstep = (s: Omit<PrepStep, 'id'>): PrepStep => ({ id: gid('pstep'), ...s });
 
 /**
  * Build a fresh copy of the seed data. Called on first load and on "Reset".
@@ -496,6 +562,62 @@ export function buildSeed(): AppData {
     }),
   ];
 
+  const testPrep: TestPrep = {
+    // Strategy: chase waivers first (Warwick Test + Imperial waiver) given the
+    // 8.5 CGPA, but keep a real GMAT/GRE plan running as a parallel backup.
+    route: 'Waiver-first',
+    decideBy: '2026-08-15',
+    targetTestDate: '2026-09-05',
+    targets: {
+      gmat: { display: '655+ (Focus Edition)', score: 655, range: '205–805' },
+      gre: { display: '325+ (Verbal + Quant)', score: 325, range: '260–340' },
+    },
+    sections: [
+      psec({ test: 'GMAT', name: 'Quantitative Reasoning', range: '60–90', target: '84+', confidence: 15 }),
+      psec({ test: 'GMAT', name: 'Verbal Reasoning', range: '60–90', target: '85+', confidence: 20 }),
+      psec({ test: 'GMAT', name: 'Data Insights', range: '60–90', target: '80+', confidence: 10 }),
+      psec({ test: 'GRE', name: 'Quantitative Reasoning', range: '130–170', target: '165', confidence: 15 }),
+      psec({ test: 'GRE', name: 'Verbal Reasoning', range: '130–170', target: '160', confidence: 20 }),
+      psec({ test: 'GRE', name: 'Analytical Writing', range: '0–6', target: '4.5', confidence: 25 }),
+    ],
+    mocks: [], // log practice-test results as you take them
+    plan: [
+      // Phase 1 — Diagnostic & foundations
+      pstep({ phase: 'Phase 1 · Diagnostic & foundations', date: '2026-06-22', label: 'Take a free official diagnostic mock to baseline (GMAT Official Practice 1 / GRE POWERPREP 1)', done: false, approx: true }),
+      pstep({ phase: 'Phase 1 · Diagnostic & foundations', date: '2026-06-28', label: 'Pick the primary test: GMAT Focus vs GRE (use the diagnostic + section comfort)', done: false, approx: true }),
+      pstep({ phase: 'Phase 1 · Diagnostic & foundations', date: '2026-07-05', label: 'Set a study schedule (~10–12 hrs/week) and gather resources', done: false, approx: true }),
+      // Phase 2 — Core concepts
+      pstep({ phase: 'Phase 2 · Core concepts', date: '2026-07-12', label: 'Quant fundamentals pass + daily problem sets', done: false, approx: true }),
+      pstep({ phase: 'Phase 2 · Core concepts', date: '2026-07-19', label: 'Verbal fundamentals pass (RC / CR / SC, or GRE Verbal + vocab)', done: false, approx: true }),
+      pstep({ phase: 'Phase 2 · Core concepts', date: '2026-07-26', label: 'Data Insights (GMAT) / Analytical Writing (GRE) focused practice', done: false, approx: true }),
+      pstep({ phase: 'Phase 2 · Core concepts', date: '2026-08-02', label: 'Full-length mock #2 — review every error, start an error log', done: false, approx: true }),
+      // Phase 3 — Practice & timing
+      pstep({ phase: 'Phase 3 · Practice & timing', date: '2026-08-09', label: 'Timed section sets; drill weak areas from the error log', done: false, approx: true }),
+      pstep({ phase: 'Phase 3 · Practice & timing', date: '2026-08-16', label: 'Full-length mock #3 + full review', done: false, approx: true }),
+      pstep({ phase: 'Phase 3 · Practice & timing', date: '2026-08-21', label: 'Book the official exam slot (~3 weeks out)', done: false, approx: true }),
+      pstep({ phase: 'Phase 3 · Practice & timing', date: '2026-08-23', label: 'Full-length mock #4 — simulate real test-day timing', done: false, approx: true }),
+      // Phase 4 — Final & test
+      pstep({ phase: 'Phase 4 · Final & test', date: '2026-08-30', label: 'Light review, redo flagged questions, rest well', done: false, approx: true }),
+      pstep({ phase: 'Phase 4 · Final & test', date: '2026-09-05', label: 'Test day (target) — send official scores to your schools', done: false, approx: true }),
+      pstep({ phase: 'Phase 4 · Final & test', date: '2026-09-15', label: 'Scores ready for Round 1 applications', done: false, approx: true }),
+    ],
+    resources: [
+      // GMAT
+      pres({ name: 'GMAT Focus Edition — Official (mba.com)', test: 'GMAT', kind: 'Official', link: 'https://www.mba.com/exams/gmat-focus-edition', cost: 'Exam ~US$275–300', notes: 'Register here. 2 free Official Practice Exams included.', status: 'To explore' }),
+      pres({ name: 'GMAT Official Guide 2024–2025', test: 'GMAT', kind: 'Books', link: 'https://www.mba.com/exam-prep', cost: '~₹3–5k', notes: 'Official retired questions + online question bank.', status: 'To explore' }),
+      pres({ name: 'GMAT Club', test: 'GMAT', kind: 'Free', link: 'https://gmatclub.com', cost: 'Free', notes: 'Forums, free tests, error log, plus scholarship threads.', status: 'To explore' }),
+      pres({ name: 'Target Test Prep (GMAT)', test: 'GMAT', kind: 'Course', link: 'https://www.targettestprep.com', cost: '~US$99/mo', notes: 'Top-rated, especially for Quant & Data Insights.', status: 'To explore' }),
+      pres({ name: 'e-GMAT', test: 'GMAT', kind: 'Course', link: 'https://e-gmat.com', cost: '~US$199+', notes: 'Popular with Indian test-takers; strong Verbal (SC/CR).', status: 'To explore' }),
+      // GRE
+      pres({ name: 'GRE General Test — Official (ETS)', test: 'GRE', kind: 'Official', link: 'https://www.ets.org/gre', cost: 'Exam ~US$220–228', notes: 'Register here. 2 free POWERPREP practice tests.', status: 'To explore' }),
+      pres({ name: 'GregMat', test: 'GRE', kind: 'Course', link: 'https://www.gregmat.com', cost: '~US$5/mo', notes: 'Best value; full study plans + Quant/Verbal lessons.', status: 'To explore' }),
+      pres({ name: 'Manhattan Prep 5 lb Book (GRE)', test: 'GRE', kind: 'Books', link: 'https://www.manhattanprep.com/gre/', cost: '~₹2–3k', notes: '1,800+ practice problems across all sections.', status: 'To explore' }),
+      pres({ name: 'Magoosh GRE', test: 'GRE', kind: 'Course', link: 'https://magoosh.com/gre/', cost: '~US$149', notes: 'Video lessons + question bank, strong mobile app.', status: 'To explore' }),
+      // Both
+      pres({ name: 'Khan Academy (Math & Verbal foundations)', test: 'Both', kind: 'Free', link: 'https://www.khanacademy.org', cost: 'Free', notes: 'Free brush-up on Quant fundamentals and grammar.', status: 'To explore' }),
+    ],
+  };
+
   return {
     meta: {
       candidate: 'B. Jyothi Swaroop',
@@ -511,5 +633,6 @@ export function buildSeed(): AppData {
     essays,
     tasks,
     recommenders,
+    testPrep,
   };
 }

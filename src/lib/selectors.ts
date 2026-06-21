@@ -19,10 +19,13 @@ export function computeProgress(data: AppData): { overall: ProgressStat; parts: 
   const milestonesDone = data.milestones.filter((m) => m.done).length;
   const essaysDone = data.essays.filter((e) => isDoneStatus(e.status)).length;
   const appsDone = data.schools.filter((s) => isDoneStatus(s.status)).length;
+  const prep = data.testPrep.plan;
+  const prepDone = prep.filter((s) => s.done).length;
 
   const parts: ProgressStat[] = [
     { label: 'Applications', done: appsDone, total: data.schools.length, pct: pct(appsDone, data.schools.length) },
     { label: 'Essays', done: essaysDone, total: data.essays.length, pct: pct(essaysDone, data.essays.length) },
+    { label: 'Test prep', done: prepDone, total: prep.length, pct: pct(prepDone, prep.length) },
     { label: 'Tasks', done: tasksDone, total: data.tasks.length, pct: pct(tasksDone, data.tasks.length) },
     {
       label: 'Milestones',
@@ -32,9 +35,9 @@ export function computeProgress(data: AppData): { overall: ProgressStat; parts: 
     },
   ];
 
-  const done = tasksDone + milestonesDone + essaysDone + appsDone;
+  const done = tasksDone + milestonesDone + essaysDone + appsDone + prepDone;
   const total =
-    data.tasks.length + data.milestones.length + data.essays.length + data.schools.length;
+    data.tasks.length + data.milestones.length + data.essays.length + data.schools.length + prep.length;
 
   return {
     overall: { label: 'Overall', done, total, pct: pct(done, total) },

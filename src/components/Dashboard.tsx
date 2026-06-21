@@ -24,6 +24,7 @@ import { StatusSelect } from './ui/StatusControl';
 const CATEGORY_BAR: Record<string, string> = {
   Applications: 'bg-sky-500',
   Essays: 'bg-violet-500',
+  'Test prep': 'bg-fuchsia-500',
   Tasks: 'bg-emerald-500',
   Milestones: 'bg-amber-500',
 };

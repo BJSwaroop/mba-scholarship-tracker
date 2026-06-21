@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   Banknote,
+  BookOpenCheck,
   CalendarClock,
   Download,
   FileText,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { EssaysView } from './components/EssaysView';
+import { PrepView } from './components/PrepView';
 import { ScholarshipsView } from './components/ScholarshipsView';
 import { SchoolsView } from './components/SchoolsView';
 import { TasksView } from './components/TasksView';
@@ -21,13 +23,14 @@ import { TimelineView } from './components/TimelineView';
 import { useTheme } from './lib/theme';
 import { useStore } from './store';
 
-type ViewId = 'dashboard' | 'schools' | 'scholarships' | 'timeline' | 'essays' | 'tasks';
+type ViewId = 'dashboard' | 'schools' | 'scholarships' | 'timeline' | 'prep' | 'essays' | 'tasks';
 
 const NAV: { id: ViewId; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
   { id: 'schools', label: 'Schools', icon: <GraduationCap className="h-4 w-4" /> },
   { id: 'scholarships', label: 'Scholarships', icon: <Banknote className="h-4 w-4" /> },
   { id: 'timeline', label: 'Timeline', icon: <CalendarClock className="h-4 w-4" /> },
+  { id: 'prep', label: 'Test Prep', icon: <BookOpenCheck className="h-4 w-4" /> },
   { id: 'essays', label: 'Essays', icon: <FileText className="h-4 w-4" /> },
   { id: 'tasks', label: 'Tasks', icon: <ListChecks className="h-4 w-4" /> },
 ];
@@ -129,6 +132,7 @@ export default function App() {
           {view === 'schools' && <SchoolsView />}
           {view === 'scholarships' && <ScholarshipsView />}
           {view === 'timeline' && <TimelineView />}
+          {view === 'prep' && <PrepView />}
           {view === 'essays' && <EssaysView />}
           {view === 'tasks' && <TasksView />}
         </div>
